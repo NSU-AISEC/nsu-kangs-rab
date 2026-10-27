@@ -19,6 +19,7 @@ from . import mainview, screens
 MIN_WINDOW = (800, 560)
 DEFAULT_WINDOW = (1280, 960)
 DIALOG_MIN_HEIGHT = 420
+DIALOG_AVAIL_MARGIN = 20          # 첫 실행 고지 · 세션 시작 창의 높이 상한 = 가용 높이 − 20(결정 0190 2항). 설정 · 다시 보기 · 메인 창은 80 그대로
 
 
 def fit_to_screen(size, margin: int = 80, screen=None):
@@ -105,7 +106,7 @@ class MainShell(QMainWindow):
 
     def _apply_window_rules(self, page) -> None:
         """창의 공통 규칙(결정 0068 5항): 첫 실행 · 세션 시작 화면은 폭을 고정하고 상태 표시줄이 없으며, 높이는
-        내용 높이와 가용 높이 − 80 중 작은 값(최소 420)이다. 메인 창은 최소 800×560 · 기본 1280×960 이다."""
+        내용 높이와 가용 높이 − 20 중 작은 값(최소 420, 결정 0190 2항)이다. 메인 창은 최소 800×560 · 기본 1280×960 이다."""
         width = getattr(page, "WIDTH", None)
         QWIDGETSIZE_MAX = 16777215
         if width is None:
@@ -130,14 +131,14 @@ class MainShell(QMainWindow):
             return 0
 
     def _avail_height(self) -> int:
-        """창이 놓인 화면의 가용 높이 − 80(`QScreen.availableGeometry`, AC-FR1-25)."""
+        """창이 놓인 화면의 가용 높이 − 20(`QScreen.availableGeometry`, AC-FR1-25, 결정 0190 2항). 첫 실행 고지와 세션 시작 두 화면에만 쓴다."""
         scr = self._screen_obj()
         if scr is None:
             return 100000
-        return scr.availableGeometry().height() - 80
+        return scr.availableGeometry().height() - DIALOG_AVAIL_MARGIN
 
     def _fit_dialog_height(self, page, width: int) -> None:
-        """대화 상자 창의 바깥 높이 = max(420, min(내용 높이, 가용 높이 − 80)) (결정 0117 4항, 시각 설계 7-12 "높이").
+        """대화 상자 창의 바깥 높이 = max(420, min(내용 높이, 가용 높이 − 20)) (결정 0117 4항 · 0190 2항, 시각 설계 7-12 "높이").
         내용 높이는 제목줄을 포함하므로 안쪽 내용 높이에 창틀의 높이를 더한다. 위쪽 모서리는 그대로 둔다."""
         extra = self._frame_extra()
         outer = max(DIALOG_MIN_HEIGHT, min(page.content_height() + extra, self._avail_height()))

@@ -471,8 +471,8 @@ class _LanguageDelegate(_ProviderDelegate):
         painter.restore()
 
 
-def language_combo(entries, current: str, width: int = 300) -> QComboBox:
-    """언어 드롭다운(닫힌 상자 높이 36 · 너비 300, 펼친 목록은 8줄). `entries`: [(코드, 자기 이름, 앱 언어의 이름 | "", 닫힌 상자의 문구)]."""
+def language_combo(entries, current: str) -> QComboBox:
+    """언어 드롭다운(닫힌 상자 높이 36 · 너비는 2. 모델 제공자 드롭다운과 같은 본문 폭, 결정 0190 1항, 펼친 목록은 8줄). `entries`: [(코드, 자기 이름, 앱 언어의 이름 | "", 닫힌 상자의 문구)]."""
     box = ProviderCombo()
     box.setObjectName("prov_combo")
     model = QStandardItemModel(box)
@@ -488,7 +488,7 @@ def language_combo(entries, current: str, width: int = 300) -> QComboBox:
     view.setItemDelegate(_LanguageDelegate(box))
     view.setMouseTracking(True)
     box.setView(view)
-    box.setFixedSize(width, 36)
+    box.setFixedHeight(36)
     box.setMaxVisibleItems(8)
     set_combo_data(box, current)
     return box
@@ -549,7 +549,7 @@ def _section(title: str) -> QLabel:
 
 
 class SectionSeparator(QFrame):
-    """시작 화면의 절 사이 구분선(결정 0189 2항, 시각 설계 7-12 ⑧): 높이 1, 본문 폭 전체, 색 `hairline`. 본문 요소로 세어 위아래에 요소 간격 18 이 적용된다."""
+    """시작 화면의 절 사이 구분선(결정 0189 2항, 시각 설계 7-12 ⑧): 높이 1, 본문 폭 전체, 색 `hairline`. 본문 요소로 세며 위아래 이웃 요소와의 간격은 10 이다(결정 0190 3항)."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -613,7 +613,7 @@ class ElidedPathEdit(QLineEdit):
 
 
 class AppLanguageSection(QWidget):
-    """시작 화면의 "1. 앱 언어" 절(결정 0181 1항, 시안 "2" · "2-5" · "11-1b"): 제목 18 · 아래 8 에 드롭다운(너비 300),
+    """시작 화면의 "1. 앱 언어" 절(결정 0181 1항, 시안 "2" · "2-5" · "11-1b"): 제목 18 · 아래 8 에 드롭다운(본문 폭, 결정 0190 1항),
     고른 값이 지금 값과 다르면 그 아래 10 에 다시 시작 안내(NEW-6)를 보인다. 값은 고르는 즉시 신호로 알린다(저장은 호출한 쪽이 한다)."""
     app_language_changed = Signal(str)
 
@@ -641,7 +641,7 @@ class AppLanguageSection(QWidget):
         self._notice_wrap.setVisible(False)
         lay.addWidget(self.head)
         lay.addSpacing(8)
-        lay.addWidget(self.app_language, 0, Qt.AlignmentFlag.AlignLeft)
+        lay.addWidget(self.app_language)
         lay.addWidget(self._notice_wrap)
         self._update_lang_notice()
         self.app_language.currentIndexChanged.connect(lambda _i: self._on_app_language())
@@ -1086,10 +1086,9 @@ class SessionStartForm(QWidget):
         self.family_section = group(_section(_t("start.init___048")), self.family_cards)
         self.effort_section = group(_section(_t("newlang.new81")), self.effort_cards)      # NEW-81 "4. effort"(번역 표에서 읽는다, R12-8)
         self.source_section = group(_section(_t("start.init___049")), self.source_cards)
-        # 7. 음성 인식 언어(결정 0179 1항 · 0181 1항): 6. 음성 소스의 오른쪽 열. 제목 · 드롭다운 · 설명 줄 NEW-71, 아홉 밖의 저장 값이면 경고 줄 NEW-59
+        # 7. 음성 인식 언어(결정 0179 1항 · 0181 1항): 6. 음성 소스 아래의 별도 절(결정 0189 1항). 제목 · 드롭다운 · 설명 줄 NEW-71, 아홉 밖의 저장 값이면 경고 줄 NEW-59
         from ..core import i18n, languages
         self.stt_language = language_combo(stt_language_entries(i18n.language()), languages.normalize_stt(self._data.get("stt_language")))
-        self.stt_language.setFixedWidth(300)               # 1. 앱 언어의 드롭다운과 같은 너비(AC-FR1-33 ①)
         self.stt_language.setToolTip("")
         stt_note = QLabel(_t("newlang.new71"))
         stt_note.setObjectName("mute")
@@ -1134,10 +1133,12 @@ class SessionStartForm(QWidget):
         body.setObjectName("start_body")
         self._lay = QVBoxLayout(body)
         self._lay.setContentsMargins(24, 20, 24, 20)
-        self._lay.setSpacing(18)
+        self._lay.setSpacing(10)                       # 구분선과 이웃한 쌍의 간격(결정 0190 3항). 그 밖의 쌍은 18 이며 아래의 `_sync_top_gap` 이 맡는다
         self._lay.addWidget(self.banner)
         self._lay.addWidget(self.check_line)
         self._section_separators: dict = {}
+        for w in (self.banner, self.check_line):
+            w.installEventFilter(self)                # 띠 · 점검 줄의 표시가 바뀌면 1. 앱 언어와의 간격 18 을 다시 정한다
 
         def add_section_row(section: QWidget, separate: bool = True) -> None:
             if separate:
@@ -1157,6 +1158,7 @@ class SessionStartForm(QWidget):
             add_section_row(sec)
         self.claude_section.setVisible(ClaudeSection.provider_shows_section(sel.provider))
         self._sync_separators()
+        self._sync_top_gap()
         self._pending_reveal: Optional[str] = None
         self._body = body
         body.installEventFilter(self)                 # 내용 높이가 바뀌면 창 높이를 다시 정한다(AC-FR1-25)
@@ -1212,6 +1214,14 @@ class SessionStartForm(QWidget):
         self.claude_section.setVisible(ClaudeSection.provider_shows_section(provider))
         self._sync_separators()
 
+    def _sync_top_gap(self) -> None:
+        """띠 · 점검 줄 아래의 간격은 18 이다(그 밖의 요소 쌍, 결정 0190 3항). 본문 간격이 10 이므로 위의 두 요소가 보일 때 1. 앱 언어 위에 8 을 더한다."""
+        above = not (self.banner.isHidden() and self.check_line.isHidden())
+        sec = self.app_language_section
+        top = 8 if above else 0
+        if sec.contentsMargins().top() != top:
+            sec.setContentsMargins(0, top, 0, 0)
+
     def _sync_separators(self) -> None:
         """절 앞의 구분선은 그 절이 보일 때만 보인다(5번 절이 감춰지면 그 앞의 구분선도 감춘다, 개수 = 보이는 절 수 − 1)."""
         for section, sep in self._section_separators.items():
@@ -1241,7 +1251,7 @@ class SessionStartForm(QWidget):
         본문을 그 절이 완전히 보이는 최소 거리만큼 스크롤하고(이미 보이면 움직이지 않는다) 초점을 키 없음이면 API 키 칸에, 나머지는 경로 칸에 둔다.
         창이 아직 보이지 않으면 처음 보일 때 한 번 한다."""
         self._pending_reveal = kind
-        QTimer.singleShot(0, self._apply_reveal)
+        QTimer.singleShot(0, self, self._apply_reveal)
 
     def _apply_reveal(self) -> None:
         kind = self._pending_reveal
@@ -1266,7 +1276,7 @@ class SessionStartForm(QWidget):
     def showEvent(self, ev) -> None:  # noqa: N802 (Qt)
         super().showEvent(ev)
         if self._pending_reveal:
-            QTimer.singleShot(0, self._apply_reveal)
+            QTimer.singleShot(0, self, self._apply_reveal)
 
     def set_stt_fallback_notice(self, text: str) -> None:
         """저장된 음성 인식 언어가 표 밖이어서 한국어로 바꾼 안내 줄(NEW-59 · 59N). 빈 글이면 감춘다."""
@@ -1372,10 +1382,13 @@ class SessionStartForm(QWidget):
     def eventFilter(self, obj, ev) -> bool:      # noqa: N802 (Qt)
         if obj is self._body and ev.type() == QEvent.Type.LayoutRequest:
             self._relayout_timer.start()          # 본문의 요소가 바뀌었다
+            self._sync_top_gap()                  # 띠 · 점검 줄이 표시 · 숨김으로 바뀌었을 수 있다(값이 바뀔 때만 여백을 고친다)
+        elif obj in (self.banner, self.check_line) and ev.type() in (QEvent.Type.Show, QEvent.Type.Hide, QEvent.Type.ShowToParent, QEvent.Type.HideToParent):
+            self._sync_top_gap()
         return False
 
     def layout_elements(self) -> list:
-        """본문의 보이는 요소(위에서 아래)와 표시 높이. 내용 높이 = 위 여백 20 + 높이의 합 + 간격 18 × (요소 수 − 1) + 아래 여백 20 + 하단 행 64
+        """본문의 보이는 요소(위에서 아래)와 표시 높이. 내용 높이 = 위 여백 20 + 높이의 합 + 간격(구분선과 이웃한 쌍 10 · 그 밖 18)의 합 + 아래 여백 20 + 하단 행 64
         (AC-FR1-25). 시험이 이 값으로 `content_height()` 를 대조한다."""
         out = []
         for i in range(self._lay.count()):
@@ -1383,6 +1396,8 @@ class SessionStartForm(QWidget):
             if w is not None and not w.isHidden():
                 ew = w.width()                       # 요소의 실제 폭에서의 선호 높이(남는 높이는 배분하지 않는다)
                 h = w.heightForWidth(ew) if w.hasHeightForWidth() else w.sizeHint().height()
+                if w is self.app_language_section:
+                    h -= w.contentsMargins().top()           # 띠 · 점검 줄 아래의 간격 18 을 만드는 위 여백 8 은 간격이며 요소 높이가 아니다(`_sync_top_gap`)
                 out.append((w.objectName() or type(w).__name__, h))
         return out
 

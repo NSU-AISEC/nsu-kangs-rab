@@ -11,6 +11,7 @@ import test_app_controller as TC  # noqa: E402
 from PySide6.QtCore import QPoint  # noqa: E402
 from PySide6.QtWidgets import QFrame, QLabel, QWidget  # noqa: E402
 from nsu_kangs_rab.app import screens, theme  # noqa: E402
+from test_start_screen_stage6 import gap_sum  # noqa: E402
 
 UR = screens.Qt.ItemDataRole.UserRole
 _t = screens._t
@@ -51,8 +52,9 @@ class VerticalTest(TC.Base):
         t6 = geo(self._title(sp, _t("start.init___049")), sp)
         t7 = geo(self._title(sp, _t("newlang.new80")), sp)
         self.assertEqual(t6[0], t7[0])                            # 제목의 왼쪽 가장자리가 같다
-        self.assertEqual(sp.stt_language.width(), 300)
-        self.assertEqual(sp.stt_language.width(), sp.app_language_section.app_language.width())
+        self.assertEqual(sp.stt_language.width(), sp.provider.width())          # 결정 0190 1항: 2. 모델 제공자 드롭다운과 같은 본문 폭
+        self.assertEqual(sp.app_language_section.app_language.width(), sp.provider.width())
+        self.assertEqual(sp.provider.width(), sp.scroll.widget().width() - 2 * BODY_MARGIN)
         self.assertIs(s7.isAncestorOf(sp.stt_fallback_notice), True)   # NEW-59 줄은 7절 본문에 속한다
 
     def test_old_structure_removed(self):
@@ -88,7 +90,7 @@ class VerticalTest(TC.Base):
         self.assertTrue(sp.claude_section.isHidden())
         self._check_separators(sp, 8)
 
-    def test_separator_spacing_18(self):
+    def test_separator_spacing_10(self):
         sp = self._show()
         ss = [s for s in seps(sp) if not s.isHidden()]
         body = sp.scroll.widget()
@@ -101,8 +103,8 @@ class VerticalTest(TC.Base):
             i = items.index(s)
             above, below = geo(items[i - 1], body), geo(items[i + 1], body)
             me = geo(s, body)
-            self.assertEqual(me[1] - above[3] - 1, 18)
-            self.assertEqual(below[1] - me[3] - 1, 18)
+            self.assertEqual(me[1] - above[3] - 1, 10)
+            self.assertEqual(below[1] - me[3] - 1, 10)
 
     def test_separator_color_equal_in_light_and_dark(self):       # AC-FR1-33 ②: 색 hairline, 밝은 · 어두운 테마
         for scheme in ("light", "dark"):
@@ -122,7 +124,40 @@ class VerticalTest(TC.Base):
         for n, h in els:
             if n == "section_separator":
                 self.assertEqual(h, 1)
-        self.assertEqual(sp.content_height(), 20 + sum(h for _n, h in els) + 18 * (len(els) - 1) + 20 + 64)
+        self.assertEqual(sp.content_height(), 20 + sum(h for _n, h in els) + gap_sum(els) + 20 + 64)
+
+
+class Stage15Test(TC.Base):
+    """단계 15 (결정 0190): 요소 간격 18 은 띠 · 점검 줄 아래만, 높이 상한 − 20 은 첫 실행 고지 · 세션 시작만."""
+    def test_gap_below_check_line_is_18(self):                    # AC-FR1-33 ④ · AC-FR1-25
+        sp = self.ctl.shell.start_page
+        self.ctl.shell.show()
+        sp.resize(900, 1600)
+        sp.show()
+        sp.show_check_line("확인 중")
+        TC._app.processEvents()
+        TC._app.processEvents()
+        self.assertFalse(sp.check_line.isHidden())
+        gap = geo(sp.app_language_section.head, sp)[1] - geo(sp.check_line, sp)[3] - 1
+        self.assertEqual(gap, 18)
+
+    def test_no_extra_top_margin_without_banner_and_check_line(self):
+        sp = self.ctl.shell.start_page
+        self.ctl.shell.show()
+        sp.show()
+        sp.show_check_line("확인 중")
+        TC._app.processEvents()
+        self.assertEqual(sp.app_language_section.contentsMargins().top(), 8)
+        sp.check_line.setVisible(False)
+        sp.banner.setVisible(False)
+        TC._app.processEvents()
+        self.assertEqual(sp.app_language_section.contentsMargins().top(), 0)
+
+    def test_dialog_margin_20_only_for_start_and_first_run(self):
+        from nsu_kangs_rab.app import shell
+        self.assertEqual(shell.DIALOG_AVAIL_MARGIN, 20)
+        self.assertEqual(shell.fit_to_screen((800, 100000), screen=self.ctl.shell.screen())[1],
+                         self.ctl.shell.screen().availableGeometry().height() - 80)       # 설정 · 다시 보기 · 메인 창은 80 그대로
 
 
 def tearDownModule():

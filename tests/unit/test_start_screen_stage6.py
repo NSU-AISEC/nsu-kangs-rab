@@ -76,6 +76,11 @@ class ModelDropdownAndPlainRadiosTest(unittest.TestCase):  # AC-FR1-24
         f.close()
 
 
+def gap_sum(els) -> int:
+    """요소 간격의 합: 구분선과 이웃한 쌍은 10, 그 밖의 쌍은 18(결정 0190 3항)."""
+    return sum(10 if "section_separator" in (a[0], b[0]) else 18 for a, b in zip(els, els[1:]))
+
+
 class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
     def _shell(self, avail):
         s = shell.MainShell(defaults(), "/tmp", None, first_run=False)
@@ -109,7 +114,10 @@ class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
         c = page.content_height()
         self.assertEqual(s.frameGeometry().height(), max(shell.DIALOG_MIN_HEIGHT, self._outer(s)))
         self.assertEqual(page.scroll.verticalScrollBar().maximum(), 0)
-        self.assertEqual(page.scroll.widget().sizeHint().height() + 64, c)
+        body = page.scroll.widget()
+        lay = body.layout()
+        # 본문의 최소 폭이 두 열 때문에 넓지 않게 되어(결정 0189) sizeHint(힌트 폭)는 실제 폭보다 좁은 폭의 높이이다: 실제 폭의 선호 높이로 대조한다(AC-FR1-25, D-151)
+        self.assertEqual(lay.heightForWidth(body.width()) + 64, c)
         s.close()
 
     def test_content_height_formula(self):
@@ -117,15 +125,15 @@ class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
         f.show()
         _app.processEvents()
         els = f.layout_elements()
-        self.assertEqual(f.content_height(), 20 + sum(h for _n, h in els) + 18 * (len(els) - 1) + 20 + 64)
+        self.assertEqual(f.content_height(), 20 + sum(h for _n, h in els) + gap_sum(els) + 20 + 64)
         f.close()
 
     def test_height_limited_by_available_and_scrolls(self):
-        s = self._shell(700)            # 가용 − 80 = 620 < 내용
+        s = self._shell(700)            # 가용 − 20 = 680 < 내용
         self._settle(s)
         page = s.start_page
-        self.assertGreater(page.content_height(), 620)
-        self.assertEqual(s.frameGeometry().height(), 620)
+        self.assertGreater(page.content_height(), 680)
+        self.assertEqual(s.frameGeometry().height(), 680)
         self.assertGreater(page.scroll.verticalScrollBar().maximum(), 0)
         bottom_y = page.start.mapTo(s, page.start.rect().topLeft()).y()
         page.scroll.verticalScrollBar().setValue(page.scroll.verticalScrollBar().maximum())
@@ -133,7 +141,7 @@ class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
         s.close()
 
     def test_min_height_420(self):
-        s = self._shell(450)            # 가용 − 80 = 370 < 420
+        s = self._shell(430)            # 가용 − 20 = 410 < 420
         self._settle(s)
         self.assertEqual(s.frameGeometry().height(), shell.DIALOG_MIN_HEIGHT)
         s.close()
@@ -143,7 +151,7 @@ class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
         self._settle(s)
         c = self._outer(s)
         s.close()
-        s = self._shell(c + 80)
+        s = self._shell(c + 20)
         self._settle(s)
         self.assertEqual(s.frameGeometry().height(), c)
         self.assertEqual(s.start_page.scroll.verticalScrollBar().maximum(), 0)
@@ -162,10 +170,10 @@ class WindowHeightTest(unittest.TestCase):  # AC-FR1-25
         self.assertEqual(body.height(), want)
         self.assertLess(want, body.sizeHint().height())                      # sizeHint(좁은 힌트 폭)의 높이보다 작다: 옛 계산이면 이 차이만큼 창이 높게 열린다
         els = page.layout_elements()
-        self.assertEqual(page.content_height(), 20 + sum(h for _n, h in els) + 18 * (len(els) - 1) + 20 + 64)
+        self.assertEqual(page.content_height(), 20 + sum(h for _n, h in els) + gap_sum(els) + 20 + 64)
         c = self._outer(s)
         s.close()
-        for avail, scroll in ((c + 80, False), (c + 79, True)):
+        for avail, scroll in ((c + 20, False), (c + 19, True)):
             s = self._with_panel(self._shell(avail))
             s.start_page.show_check_line(LONG)
             self._settle(s)

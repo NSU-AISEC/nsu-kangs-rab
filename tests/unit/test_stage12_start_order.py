@@ -234,11 +234,10 @@ class LocalesThreadTest(TC.Base):
                 t.join(5)
         self.assertEqual(caught, [])
 
-    def test_gc_is_off_in_worker_and_restored_on_main_d222(self):
-        """작업 스레드가 도는 동안 가비지 수집을 끄고(다른 스레드에서 Qt 객체가 지워지는 것을 막는다) 완료 신호를 받는 주 스레드에서 다시 켠다(D-222)."""
+    def test_gc_is_off_in_worker_and_restored_after_load_d222(self):
+        """작업 스레드가 도는 동안 가비지 수집을 끄고(다른 스레드에서 Qt 객체가 지워지는 것을 막는다) 불러오기가 끝나면 신호 처리와 상관없이 되돌린다(D-222 · D-223)."""
         import gc
         import threading
-        import time
         seen = []
         self.ctl.deps.list_locales = lambda cmd, timeout: (seen.append(gc.isenabled()), ["ko-KR"])[1]
         self.ctl._stt_locales_loading = False
@@ -249,11 +248,48 @@ class LocalesThreadTest(TC.Base):
             if t.name == "stt-locales":
                 t.join(5)
         self.assertEqual(seen, [False])
-        deadline = time.time() + 5
-        while not gc.isenabled() and time.time() < deadline:
+        self.assertTrue(gc.isenabled())                 # 이벤트를 처리하지 않아도 켜져 있다(D-223)
+        for _ in range(5):
             TC._app.processEvents()
-        self.assertTrue(gc.isenabled())
         self.assertEqual(self.ctl._stt_locales, {"ko-KR"})
+
+    def test_gc_restored_when_signal_is_never_handled_d223(self):
+        """완료 신호가 전달되지 않아도(제어기가 지워졌거나 신호 대기열이 처리되지 않아도) 수집 상태가 돌아온다."""
+        import gc
+        import threading
+
+        class DeadBridge:
+            class done:
+                @staticmethod
+                def emit(_):
+                    raise RuntimeError("deleted")
+        self.ctl.deps.list_locales = lambda cmd, timeout: ["ko-KR"]
+        self.ctl._locales_bridge = DeadBridge()
+        self.ctl._stt_locales_loading = False
+        gc.enable()
+        self.addCleanup(gc.enable)
+        self.ctl._load_locales()
+        for t in threading.enumerate():
+            if t.name == "stt-locales":
+                t.join(5)
+        self.assertTrue(gc.isenabled())
+
+    def test_gc_restored_when_lookup_raises_and_stays_off_if_it_was_off_d223(self):
+        import gc
+        import threading
+
+        def boom(cmd, timeout):
+            raise OSError("x")
+        self.ctl.deps.list_locales = boom
+        self.addCleanup(gc.enable)
+        for before in (True, False):
+            gc.enable() if before else gc.disable()
+            self.ctl._stt_locales_loading = False
+            self.ctl._load_locales()
+            for t in threading.enumerate():
+                if t.name == "stt-locales":
+                    t.join(5)
+            self.assertEqual(gc.isenabled(), before)
 
 
 def tearDownModule():

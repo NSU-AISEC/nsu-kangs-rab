@@ -315,6 +315,30 @@ class _QuitFilter(QObject):
         return False
 
 
+_GC_LOCK = threading.Lock()
+_GC_HOLDS = 0
+_GC_WAS_ON = False
+
+
+def _gc_hold() -> None:
+    """가비지 수집을 끄고 끈 횟수를 센다. 처음 끈 쪽이 이전 상태를 기억한다(D-222 · D-223)."""
+    global _GC_HOLDS, _GC_WAS_ON
+    with _GC_LOCK:
+        if _GC_HOLDS == 0:
+            _GC_WAS_ON = gc.isenabled()
+            gc.disable()
+        _GC_HOLDS += 1
+
+
+def _gc_release() -> None:
+    """마지막으로 끈 쪽이 끝나면 처음 상태로 되돌린다."""
+    global _GC_HOLDS
+    with _GC_LOCK:
+        _GC_HOLDS = max(0, _GC_HOLDS - 1)
+        if _GC_HOLDS == 0 and _GC_WAS_ON:
+            gc.enable()
+
+
 class AppController(QObject):
     def __init__(self, app: QApplication, argv: Sequence[str] = (), deps: Optional[Deps] = None):
         super().__init__()
@@ -1177,32 +1201,28 @@ class AppController(QObject):
         fn = self.deps.list_locales
         bridge = self._locales_bridge
 
-        gc_was_on = gc.isenabled()
-        self._locales_gc_restore = gc_was_on
-        if gc_was_on:
-            gc.disable()        # 작업 스레드가 모듈을 불러오는 동안 순환 쓰레기의 수집이 이 스레드에서 실행되어 주 스레드의 Qt 객체를 지우지 않게 한다(D-222). 수집은 완료 신호를 받는 주 스레드(`_on_locales`)가 다시 켠다.
+        _gc_hold()      # 작업 스레드가 모듈을 불러오는 동안 순환 쓰레기의 수집이 이 스레드에서 실행되어 주 스레드의 Qt 객체를 지우지 않게 한다(D-222)
 
         def work():
             try:
-                if fn is not None:
-                    lst = fn(cmd, 5.0)
-                else:
-                    from ..platform.stt import stt_speech
-                    lst = stt_speech.list_locales(cmd, 5.0)
-            except Exception:  # noqa: BLE001
-                lst = None
+                try:
+                    if fn is not None:
+                        lst = fn(cmd, 5.0)
+                    else:
+                        from ..platform.stt import stt_speech
+                        lst = stt_speech.list_locales(cmd, 5.0)
+                except Exception:  # noqa: BLE001
+                    lst = None
+            finally:
+                _gc_release()   # 수집 상태는 제어기의 수명이나 완료 신호의 처리와 상관없이 불러오기가 끝나면 되돌린다(D-223)
             try:
                 bridge.done.emit(lst)
             except RuntimeError:        # 제어기가 이미 지워진 뒤(종료 중)이면 알릴 곳이 없다. 예외가 스레드 밖으로 나가 종료 중 stderr 에 쓰지 않게 한다(D-213)
-                if gc_was_on:
-                    gc.enable()         # 주 스레드가 신호를 받지 못하므로 여기서 되돌린다
+                pass
         threading.Thread(target=work, name="stt-locales", daemon=True).start()
 
     def _on_locales(self, lst) -> None:
         self._stt_locales_loading = False
-        if getattr(self, "_locales_gc_restore", False):
-            self._locales_gc_restore = False
-            gc.enable()                 # 주 스레드에서 수집을 다시 켠다(D-222)
         if lst is not None:
             self._stt_locales = set(str(x) for x in lst)
         try:

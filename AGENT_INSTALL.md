@@ -1,8 +1,8 @@
 # Installing with an AI coding agent
 
-This document is the procedure that an AI coding agent (Claude Code or another) follows when a user asks it to install Prof. Kang's RAB on this Mac. The source of the install commands is the "Install" section of [`README.md`](README.md#install). This document does not repeat the commands; it fixes the order in which to run them, what to check, and where to hand over to the user.
+This document is the procedure that an AI coding agent (Claude Code or another) follows when a user asks it to install Prof. Kang's RAB on this Mac. The source of the install commands is the "Install" section of [`README.en.md`](README.en.md#install). This document does not repeat the commands; it fixes the order in which to run them, what to check, and where to hand over to the user.
 
-The user starts the agent with the sentence in the "Quick start" section of [`README.md`](README.md#quick-start).
+The user starts the agent with the sentence in the "Quick start" section of [`README.en.md`](README.en.md#quick-start).
 
 ## Rules
 
@@ -20,7 +20,7 @@ Below, **[agent]** marks what the agent does and **[person]** marks a step where
 ## Support scope
 
 - **Only macOS 26.0 or later can be installed.** Speech recognition uses the SpeechTranscriber built into macOS 26. The app has been verified on Apple Silicon Macs only.
-- **On Windows, the task is porting, not installing.** There is no install procedure; a user who wants to contribute to the repository follows the guidance in [`README.md`](README.md#for-windows-users).
+- **On Windows, the task is porting, not installing.** There is no install procedure; a user who wants to contribute to the repository follows the guidance in [`README.en.md`](README.en.md#for-windows-users).
 - **Another agent may install it.** This procedure does not depend on the kind of agent. But the app calls the model through the Claude Code CLI (`claude -p`), so to use the subscription method, Claude Code must be installed and logged in.
 
 ## Step 0 — Ask first
@@ -81,8 +81,8 @@ If `sw_vers -productVersion` is below 26.0, stop and tell the user the support s
 
 ## Step 5 — Wrap up
 
-**[agent]** Briefly tell the user where the app is installed, how to open it, how to update ([`README.md`](README.md#update)), and that a troubleshooting table exists ([`README.md`](README.md#troubleshooting)). If a problem occurs, read the reason and action shown on the app's error card together with the user.
+**[agent]** Briefly tell the user where the app is installed, how to open it, how to update ([`README.en.md`](README.en.md#update)), and that a troubleshooting table exists ([`README.en.md`](README.en.md#troubleshooting)). If a problem occurs, read the reason and action shown on the app's error card together with the user.
 
 ## See Also
 
-- [`README.md`](README.md): the source of the install commands (Install), Before you start, Update, Troubleshooting, the Windows porting guidance
+- [`README.en.md`](README.en.md): the source of the install commands (Install), Before you start, Update, Troubleshooting, the Windows porting guidance

@@ -241,7 +241,13 @@ class FirstRunNotice(QWidget):
         return card, cl
 
     def content_height(self) -> int:
-        return self.scroll.widget().sizeHint().height() + self.BOTTOM_HEIGHT
+        """스크롤 없이 내용을 모두 보이는 창 높이(아래 줄 포함). 본문 높이는 줄 바꿈 글 때문에 폭에 따라 다르므로 `sizeHint`(힌트 폭의 높이)가 아니라
+        본문의 실제 폭에서의 선호 높이(`heightForWidth`)로 센다. 창 폭(`WIDTH`)을 실제 폭으로 보므로 표시 전후의 값이 같다(D-227: 표시 전 628 · 표시 뒤 618 로 달랐다)."""
+        body = self.scroll.widget()
+        w = max(self.WIDTH, body.minimumSizeHint().width())       # 창 폭은 고정이다. 스크롤 막대가 생겨 뷰포트가 좁아진 폭이 아니라 막대 없이 맞추는 폭으로 센다
+        lay = body.layout()
+        h = lay.heightForWidth(w) if lay is not None and lay.hasHeightForWidth() else body.sizeHint().height()
+        return max(h, 0) + self.BOTTOM_HEIGHT
 
     def set_permissions(self, status: Mapping) -> None:
         """권한 상태(`platform.permissions.query_status` 의 값)를 행에 반영한다. 허용이 아니면 "허용 필요" 이다."""

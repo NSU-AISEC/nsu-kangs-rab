@@ -2101,10 +2101,14 @@ class AppController(QObject):
         lay.addWidget(page)
         avail = shell_mod.fit_to_screen((page.WIDTH, 100000), screen=self.shell.screen())[1]
         dlg.setFixedWidth(page.WIDTH)
-        dlg.resize(page.WIDTH, max(shell_mod.DIALOG_MIN_HEIGHT, min(page.content_height(), avail)))
+        def fit() -> None:                  # 같은 규칙 max(420, min(내용, 가용 − 80)) 을 표시 전과 표시 뒤에 적용한다(D-227)
+            dlg.resize(page.WIDTH, max(shell_mod.DIALOG_MIN_HEIGHT, min(page.content_height(), avail)))
+
+        fit()
         page.acknowledged.connect(dlg.close)
         self._notice_dialog = dlg
         dlg.show()
+        QTimer.singleShot(0, dlg, fit)      # 표시된 뒤의 실제 폭으로 다시 맞춘다(문맥 객체: 창이 지워지면 호출하지 않는다)
 
     def _permission_values(self) -> dict:
         from ..platform import permissions as P

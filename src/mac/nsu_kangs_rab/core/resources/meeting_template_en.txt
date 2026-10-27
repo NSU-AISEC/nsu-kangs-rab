@@ -1,0 +1,39 @@
+# <Meeting name> — <YYYY-MM-DD>
+
+- Date and time: YYYY-MM-DD HH:MM~HH:MM
+- Mode: <In person | Video call>
+- Attendees: (not stated)
+
+## Agenda
+
+1. <Agenda item>
+
+## Discussion
+
+### 1. <Agenda item>
+
+<Narrative of the discussion>
+
+> "<Quote the key remark from the transcript verbatim>" (HH:MM:SS)
+
+## Decisions
+
+- <Decision agreed in the transcript> (HH:MM:SS)
+
+## Action Items
+
+| Item | Owner | Due |
+|---|---|---|
+| <Item> | (not stated) | <Due date or (TBD)> |
+
+## Captures (optional)
+
+(Same as the class template)
+
+## Q&A
+
+(Same format as the class template)
+
+## Transcript Info
+
+(Same as the class template)

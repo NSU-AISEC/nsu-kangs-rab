@@ -1,0 +1,7 @@
+출처: https://github.com/voltagent/awesome-design-md (라이선스: MIT, VoltAgent, 저장소의 LICENSE 를 함께 둔다)
+커밋: 13be5c05c63be24b57581162364167028020f043 (커밋 시각 2026-10-05T10:34:31+03:00, "docs: update Official MCP Servers badge")
+받은 날짜: 2026-10-09 (git clone --depth 1, 이 맥의 임시 폴더. 저장소 안의 스크립트는 실행하지 않았다)
+사본의 범위: 저장소의 경로를 따른다. design-md/raycast/DESIGN.md, design-md/raycast/README.md, LICENSE.
+미리 보기 HTML(preview.html · preview-dark.html): 이 커밋에 없다 (git ls-files 의 raycast 항목은 DESIGN.md · README.md 뿐이다).
+    design-md/raycast/README.md 는 미리 보기 · 다크 모드 예시 · 내려받기가 https://getdesign.md/raycast/design-md 로 옮겨졌다고 안내한다 (받아 오지 않았다).
+원본에서 고치지 않은 것: DESIGN.md 의 머리에 있는 비표준 키 "属于:" 도 원문 그대로이다.

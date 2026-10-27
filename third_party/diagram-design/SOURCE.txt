@@ -1,0 +1,27 @@
+diagram-design 사본 (결정 0027 · 0048 · 0049, AC-FR9-20)
+
+원 저장소: https://github.com/cathrynlavery/diagram-design.git
+원 판: 2.6.33, 커밋 dc1ace47b99a419e42d01a03cb6ace5346efa8ae
+원 판을 얻는 명령:
+  git clone https://github.com/cathrynlavery/diagram-design.git <원 판 폴더>
+  git -C <원 판 폴더> checkout dc1ace47b99a419e42d01a03cb6ace5346efa8ae
+싣는 경로의 원 판 해시(아래 목록의 파일 240개를 상대 경로 순으로 sha256 을 구해 그 목록을 다시 sha256 한 값):
+  35c021aecb4c7d152e28a94e9d70d5e200979465a86b3e72afbae01da6878455
+  목록 만드는 법: 원 판 폴더에서 `.claude-plugin` · `skills` · `LICENSE` · `THIRD_PARTY_LICENSES.md` 만 모은 폴더 안에서
+  `find . -type f | LC_ALL=C sort | while read f; do shasum -a 256 "$f"; done | shasum -a 256`
+
+사본을 만드는 법(변환 스크립트, 결정 0049 2항):
+  python3 experiments/diagram_font_patch.py <원 판 폴더> <출력 폴더>
+  이 저장소의 `third_party/diagram-design` 과 `diff -r` 로 같아야 한다.
+  확인 도구: `python3 tools/verify_diagram_copy.py <원 판 폴더>`
+패치 파일: `third_party/diagram-design-strip-fonts.patch` (원 판의 싣는 경로에 적용하면 사본이 된다)
+  적용 방법: 원 판에서 위 네 경로를 새 폴더 `b` 로 복사하고 `patch -p1 -d b < third_party/diagram-design-strip-fonts.patch`
+
+싣는 경로: `.claude-plugin/`, `skills/diagram-design/` 전체, `LICENSE`, `THIRD_PARTY_LICENSES.md`
+싣지 않은 경로와 까닭:
+  `.agents` · `.codex-plugin` · `.factory-plugin` · `.github` · `.gitignore` · `.in_use` · `.maintainer-policy.json`: 다른 도구용 설정 · 개발용
+  `commands/` · `prompts/`: 앱은 스킬만 호출한다(`--tools Skill,Read,Write`)
+  `scripts/`(저장소 최상위) · `docs/` · `README.md` · `CONTRIBUTING.md` · `CODE_OF_CONDUCT.md` · `SECURITY.md`: 개발 도구와 안내 문서이며 실행에 필요하지 않다
+
+바꾼 것: 웹 글꼴 링크와 `@import` 를 지우고 글꼴 변수를 시스템 글꼴 목록으로 바꿨다. 자체 검사 스크립트가 웹 글꼴을 승인하지 않게 했다.
+라이선스: `LICENSE`, `THIRD_PARTY_LICENSES.md` 를 그대로 둔다.

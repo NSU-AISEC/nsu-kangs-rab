@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "provider": "claude_subscription",
+  "model": "sonnet",
+  "claude_path": null,
+  "save_dir": null,
+  "default_session_prompt": "",
+  "first_run_ack": null,
+  "appearance": "system",
+  "app_language": "ko",
+  "stt_language": "ko",
+  "source": "system_sound",
+  "frame": null,
+  "templates": {"lecture": null, "meeting": null},
+  "providers": {
+    "claude_subscription": {
+      "families": {
+        "sonnet": {"efforts": ["medium", "high", "xhigh"], "default": "medium"},
+        "opus": {"efforts": ["medium", "high", "xhigh"], "default": "medium"},
+        "haiku": {"efforts": ["medium", "high", "xhigh"], "default": "medium"}
+      }
+    },
+    "claude_api": {
+      "families": {
+        "sonnet": {"efforts": ["medium", "high", "xhigh"], "default": "medium"},
+        "opus": {"efforts": ["medium", "high", "xhigh"], "default": "medium"},
+        "haiku": {"efforts": ["medium", "high", "xhigh"], "default": "medium"}
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "_설명": "결정 0043 5항: 원본(후보)과 앱 자원의 해시 기록. sha256 전체. 복사본이므로 두 값이 같아야 한다.",
+  "about_image.png": {
+    "원본": "raw/ChatGPT Image 2026년 10월 9일 오후 04_58_59.png",
+    "원본_sha256": "df75fe747562948d299a344da29f2b21f4dff8db2c8f5f9c76ba64d22f2b3045",
+    "자원_sha256": "df75fe747562948d299a344da29f2b21f4dff8db2c8f5f9c76ba64d22f2b3045",
+    "크기": [
+      1122,
+      1402
+    ],
+    "용도": "앱 정보 창의 이미지"
+  },
+  "app_icon_source.png": {
+    "원본": "sessions/icon/b_hair_1024.png",
+    "원본_sha256": "a9b6906af4e4472f8d9ff5a36a4e8209a98485d0558843b7cbc48be8b7ed4526",
+    "자원_sha256": "a9b6906af4e4472f8d9ff5a36a4e8209a98485d0558843b7cbc48be8b7ed4526",
+    "크기": [
+      1024,
+      1024
+    ],
+    "용도": "앱 아이콘(.icns)의 원본. tools/build_app.py 가 iconset 10종으로 줄여 iconutil 로 묶는다. 선택한 후보는 b_hair"
+  },
+  "menubar/face_*.png": {
+    "원본": "sessions/icon/menubar4/face_A_bg_{none,session,warn}_{18,36}.png (생성기 sessions/icon/menubar4/make_bg18.py)",
+    "용도": "메뉴 막대 상태 아이콘(결정 0085 · 0087 · 0088, 결정 0122 사각형 배경색 판, 시각 설계 7-13). 파일 이름은 face_{상태}_{18,36}.png 로 둔다. 픽셀 해시는 시각 설계 7-13 이 기준이고 tests/unit/test_app_menus.py 가 대조한다"
+  }
+}

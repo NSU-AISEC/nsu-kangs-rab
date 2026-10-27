@@ -1,0 +1,37 @@
+# <Course name> — Session NN
+
+- Date and time: YYYY-MM-DD HH:MM~HH:MM
+- Mode: <In person | Video call>
+
+## 1. <Topic>
+
+### 1-1. <Subtopic>
+
+<Narrative of 2 to 4 sentences>
+
+> "<Quote the key message from the transcript verbatim>" (HH:MM:SS)
+
+![HH:MM:SS screen](captures/<file name>)
+
+## Captures (optional)
+
+(Include this section only when there are captures whose related passage is hard to determine. List `![HH:MM:SS screen](captures/<file name>)` in time order, each with one line of screen note.)
+
+## Q&A
+
+### Q1. <Question summary> (HH:MM:SS)
+
+<Answer summary>
+
+![Diagram](captures/diagrams/<file name>.svg)
+
+## Key Schedule / Action Items
+
+| Item | Due | Note |
+|---|---|---|
+| <Task or schedule confirmed in the transcript> | <Due date or (TBD)> | HH:MM:SS |
+
+## Transcript Info
+
+- Transcript file: transcript.txt
+- Segments: <N>. The transcript may contain speech recognition errors.

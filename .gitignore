@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# 개인 자료 (강의 기록 · 사전 지식 자료는 저장소에 포함하지 않는다)
+sessions/
+context/
+raw/
+
+# IDE 설정
+.idea/
+
+# macOS 가 만드는 폴더 정보 파일
+.DS_Store

@@ -56,10 +56,10 @@ class OrderTest(TC.Base):
                 for t in self._expected():
                     self.assertIn(t, labels, t)
                 self.assertTrue(labels[_t("setform.browse_claude_073")].isVisible())
-                ys = [top(labels[t], sp) for t in self._expected() if t not in (_t("newlang.new80"),)]
+                ys = [top(labels[t], sp) for t in self._expected()]
                 self.assertEqual(ys, sorted(ys))
-                # 6 · 7 은 같은 줄
-                self.assertEqual(top(labels[_t("start.init___049")], sp), top(labels[_t("newlang.new80")], sp))
+                # 6 · 7 은 위아래로 쌓인다(결정 0189, AC-FR1-33 ①): 7 이 6 보다 아래이다
+                self.assertLess(top(labels[_t("start.init___049")], sp), top(labels[_t("newlang.new80")], sp))
         self.assertTrue(_t("newlang.new81").startswith("4. effort"))
 
     def test_card_texts_are_gone(self):

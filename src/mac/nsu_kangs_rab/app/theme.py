@@ -29,6 +29,7 @@ TOKENS = {
 
 _TEMPLATE = """
 QWidget {{ background: {canvas}; color: {body}; font-size: 14pt; }}
+QFrame#section_separator {{ background: {hairline}; border: none; }}
 QFrame#card {{ background: {surface}; border: 1px solid {hairline}; border-radius: 10px; }}
 QLineEdit, QPlainTextEdit, QComboBox {{ background: {surface-elevated}; color: {ink}; border: 1px solid {hairline}; border-radius: 8px; padding: 8px 12px; }}
 QLineEdit:focus, QPlainTextEdit:focus {{ border: 1px solid {hairline-strong}; }}

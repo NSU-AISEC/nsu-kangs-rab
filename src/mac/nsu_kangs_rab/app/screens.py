@@ -548,6 +548,23 @@ def _section(title: str) -> QLabel:
     return lab
 
 
+class SectionSeparator(QFrame):
+    """시작 화면의 절 사이 구분선(결정 0189 2항, 시각 설계 7-12 ⑧): 높이 1, 본문 폭 전체, 색 `hairline`. 본문 요소로 세어 위아래에 요소 간격 18 이 적용된다."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("section_separator")
+        self.setFixedHeight(1)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setFrameShape(QFrame.Shape.NoFrame)
+
+    def sizeHint(self) -> QSize:                          # noqa: N802 (Qt)
+        return QSize(0, 1)
+
+    def minimumSizeHint(self) -> QSize:                   # noqa: N802 (Qt)
+        return QSize(0, 1)
+
+
 class ElidedPathEdit(QLineEdit):
     """경로 입력란(AC-FR13-3): 편집하지 않을 때 경로가 폭보다 길면 가운데를 줄여 끝의 폴더 이름이 보이게 하고, 마우스를 올리면
     전체 경로를 도움말로 보인다. 편집 중(초점이 있을 때)에는 줄이지 않는다. `text()` 는 늘 전체 경로를 반환한다."""
@@ -956,8 +973,6 @@ class SessionStartForm(QWidget):
     api_key_delete_requested = Signal()
 
     WIDTH = 760
-    LEFT_COLUMN_WIDTH = 300             # 6. 음성 소스의 열 너비(시안 "2")
-    COLUMN_GAP = 24
 
     def __init__(self, data: Mapping, default_save_dir: str, parent=None, claude_auto: Optional[str] = None):
         super().__init__(parent)
@@ -1074,9 +1089,7 @@ class SessionStartForm(QWidget):
         # 7. 음성 인식 언어(결정 0179 1항 · 0181 1항): 6. 음성 소스의 오른쪽 열. 제목 · 드롭다운 · 설명 줄 NEW-71, 아홉 밖의 저장 값이면 경고 줄 NEW-59
         from ..core import i18n, languages
         self.stt_language = language_combo(stt_language_entries(i18n.language()), languages.normalize_stt(self._data.get("stt_language")))
-        self.stt_language.setMinimumWidth(self.LEFT_COLUMN_WIDTH)
-        self.stt_language.setMaximumWidth(16777215)
-        self.stt_language.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.stt_language.setFixedWidth(300)               # 1. 앱 언어의 드롭다운과 같은 너비(AC-FR1-33 ①)
         self.stt_language.setToolTip("")
         stt_note = QLabel(_t("newlang.new71"))
         stt_note.setObjectName("mute")
@@ -1089,22 +1102,16 @@ class SessionStartForm(QWidget):
         self.stt_section = group(self.stt_head, self.stt_language, stt_note, spacing=0)
         self.stt_section.layout().insertSpacing(1, 8)
         self.stt_section.layout().insertSpacing(3, 6)
-        self.stt_section.setObjectName("stt_section")
+        self.stt_section.setObjectName("stt_language_body")
         self.stt_fallback_notice = QLabel("")         # NEW-59 · 59N(결정 0167 7항)
         self.stt_fallback_notice.setObjectName("lang_notice")
         self.stt_fallback_notice.setWordWrap(True)
         self.stt_fallback_notice.setTextFormat(Qt.TextFormat.PlainText)
         self.stt_fallback_notice.setVisible(False)
-        self.source_row = QWidget()
-        self.source_row.setObjectName("source_stt_row")
-        sr = QHBoxLayout(self.source_row)
-        sr.setContentsMargins(0, 0, 0, 0)
-        sr.setSpacing(self.COLUMN_GAP)
-        self.source_section.setFixedWidth(self.LEFT_COLUMN_WIDTH)
-        sr.addWidget(self.source_section, 0, Qt.AlignmentFlag.AlignTop)
-        sr.addWidget(self.stt_section, 1, Qt.AlignmentFlag.AlignTop)
-        self.source_block = group(self.source_row, self.stt_fallback_notice, spacing=10)
-        self.source_block.setObjectName("source_block")
+        self.source_section.setObjectName("stt_source_section")           # 6. 음성 소스(AC-FR1-33 ①)
+        # 7. 음성 인식 언어(결정 0189 1항): 6 의 아래에 놓는 별도 요소. 경고 줄(NEW-59)은 7 절 안 설명 줄 아래 10 에 둔다
+        self.stt_language_section = group(self.stt_section, self.stt_fallback_notice, spacing=10)
+        self.stt_language_section.setObjectName("stt_language_section")
         self.app_language_section = AppLanguageSection(self._data)
         self.claude_section = ClaudeSection(self._data, claude_auto, sel.provider)
         name_row = QHBoxLayout()
@@ -1130,16 +1137,26 @@ class SessionStartForm(QWidget):
         self._lay.setSpacing(18)
         self._lay.addWidget(self.banner)
         self._lay.addWidget(self.check_line)
-        self._lay.addWidget(self.app_language_section)
-        self._lay.addWidget(self.provider_section)
-        self._lay.addWidget(self.family_section)
-        self._lay.addWidget(self.effort_section)
-        self._lay.addWidget(self.claude_section)
-        self._lay.addWidget(self.source_block)
-        self._material_index = self._lay.count()      # 사전 지식 구역이 들어갈 자리(add_section)
-        self._lay.addWidget(self.doc_section)
-        self._lay.addWidget(self.prompt_section)
+        self._section_separators: dict = {}
+
+        def add_section_row(section: QWidget, separate: bool = True) -> None:
+            if separate:
+                sep = SectionSeparator()
+                self._section_separators[section] = sep
+                self._lay.addWidget(sep)                  # 만들 때 곧바로 배치에 넣는다(부모 없는 위젯의 표시는 창을 띄운다)
+            self._lay.addWidget(section)
+
+        add_section_row(self.app_language_section, separate=False)
+        for sec in (self.provider_section, self.family_section, self.effort_section, self.claude_section,
+                    self.source_section, self.stt_language_section):
+            add_section_row(sec)
+        sep_materials = SectionSeparator()
+        self._lay.addWidget(sep_materials)                # 8. 사전 지식 앞의 구분선
+        self._material_index = self._lay.count()          # 사전 지식 구역이 들어갈 자리(add_section)
+        for sec in (self.doc_section, self.prompt_section):
+            add_section_row(sec)
         self.claude_section.setVisible(ClaudeSection.provider_shows_section(sel.provider))
+        self._sync_separators()
         self._pending_reveal: Optional[str] = None
         self._body = body
         body.installEventFilter(self)                 # 내용 높이가 바뀌면 창 높이를 다시 정한다(AC-FR1-25)
@@ -1193,6 +1210,12 @@ class SessionStartForm(QWidget):
         provider = combo_data(self.provider)
         self.claude_section.set_provider(provider)
         self.claude_section.setVisible(ClaudeSection.provider_shows_section(provider))
+        self._sync_separators()
+
+    def _sync_separators(self) -> None:
+        """절 앞의 구분선은 그 절이 보일 때만 보인다(5번 절이 감춰지면 그 앞의 구분선도 감춘다, 개수 = 보이는 절 수 − 1)."""
+        for section, sep in self._section_separators.items():
+            sep.setVisible(not section.isHidden())
 
     def _on_start_clicked(self) -> None:
         self.claude_section.flush_claude_path()          # 경로 칸을 고치고 Enter 없이 누른 경우 먼저 저장하고 띠를 다시 평가한다(S11-10)

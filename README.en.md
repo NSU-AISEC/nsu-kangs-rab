@@ -6,9 +6,9 @@
 
 <p align="center"><strong>Retrieval-Augmented Brain</strong></p>
 
-<p align="center">A Mac app that keeps you from missing what is said in class and meetings, and combines what you know with AI answers so you can respond right away.</p>
+<p align="center">An app that gathers live transcription, prior knowledge and the screen during meetings and classes to augment the user's brain and knowledge.</p>
 
-It started from the meeting method that AI expert Prof. Jangmook Kang introduced in his lecture of September 19, 2026. During a meeting or class, it gathers live transcription, prior knowledge and the screen to augment the user's brain and knowledge. Words you missed in class can be read back from the live transcript, and when a question comes to you in a meeting, one press of [Reflect] gives an answer based on the material you prepared. It is not an app that speaks for you; it is an aid that you read and judge. It runs on a Mac with macOS 26.0 or later and has been verified on Apple Silicon Macs only.
+This app was inspired by a technique that AI expert Prof. Jangmook Kang introduced in his lecture of September 19, 2026: using live recording and a laptop to augment brain function during meetings. It brings that technique into an app, gathering live transcription, prior knowledge and the screen during meetings and classes to augment the user's brain and knowledge.
 
 <p align="center"><img src="docs/assets/readme/en/screens/main-window.png" width="800" alt="Main window while a response is being written: transcript on the left, answer card on the right"></p>
 
@@ -18,7 +18,7 @@ It started from the meeting method that AI expert Prof. Jangmook Kang introduced
 
 The core value of this project lies in presenting a method, and the form of its process, for widening the channel through which information flows from the outside world to the brain and for extending context beyond the brain.
 
-The author built this app as a tool fitted to the author's own environment (macOS and Claude), so its generality is limited. Other people are encouraged to port it to their own environment (operating system and model provider). [AGENT_INSTALL.md](AGENT_INSTALL.md#porting-to-another-environment) describes the parts to port, using Windows as the example.
+This app is built to run on macOS with Claude. If you use another operating system or model provider, you are welcome to port it to fit your own environment and needs. [AGENT_INSTALL.md](AGENT_INSTALL.md#porting-to-another-environment) describes the parts to port, using Windows as the example.
 
 ## Quick start
 

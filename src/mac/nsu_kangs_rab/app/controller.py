@@ -460,6 +460,7 @@ class AppController(QObject):
         self._cleanup_finished = False       # D-132: 정리 문서 만들기가 끝났다(완료 · 실패). 끝난 뒤에는 상태 표시줄에 '만드는 중' 을 쓰지 않는다
         self._end_dialog = None
         self._rebuild_mode = False
+        self._quit_after_rebuild = False     # D-229: 다시 만들기를 취소한 결과(CANCELLED)가 오면 앱을 끝낸다
         self._end_bridge = _EndBridge()
         self._end_bridge.done.connect(self._on_done_signal)
         self._starting = None                # init 의 인증 출처를 확인하는 중인 런타임(결정 0056, AC-FR1-14)
@@ -489,7 +490,7 @@ class AppController(QObject):
     def _wire(self) -> None:
         sh, v = self.shell, self.view
         sh.session_start_requested.connect(self.start_session)
-        sh.quit_requested.connect(self.shutdown)
+        sh.quit_requested.connect(self.quit_now)
         self._quit_filter = _QuitFilter(sh.request_quit, self, lambda: self._ended)
         self.app.installEventFilter(self._quit_filter)
         sh.end_flow_requested.connect(self.end_session)
@@ -2459,10 +2460,13 @@ class AppController(QObject):
 
     def terminate_by_signal(self, reason: str = "sigterm") -> None:
         """앱이 SIGTERM 을 받았다(결정 0169 2항): 정리 문서 없이 보조 프로세스를 PID 로 끝내고(B-06) `end` 와 종료 사건을 기록하고 끝낸다."""
-        if self._ended:
+        if self._ended or self._quit_after_rebuild:
             return
         self.eventlog.emit("app_quit", reason=reason)
         self._arm_shutdown_deadline()
+        if self._rebuild_mode and self._end_flow is not None and not self._cleanup_finished:
+            self._wait_cancel_then_quit(self._end_flow)      # D-229: 응하지 않는 일회성 프로세스가 남지 않게 취소 결과를 기다린다
+            return
         self._dismiss_stop_dialog()
         flow = self._end_flow
         if flow is not None and not self._cleanup_finished:
@@ -2531,6 +2535,10 @@ class AppController(QObject):
         self._cleanup_finished = True        # D-132
         self.refresh_status()
         if self._rebuild_mode:
+            if self._quit_after_rebuild:            # D-230: 종료 요청 뒤에는 결과(CANCELLED · DONE · FAILED)와 관계없이 끝낸다. 저장된 문서는 남는다
+                self._close_rebuild_dialog()
+                self.shutdown()
+                return
             d = self._end_dialog
             if d is None:
                 return
@@ -2674,10 +2682,35 @@ class AppController(QObject):
             except Exception:
                 self.eventlog.emit("error", module="diagram", kind="io", detail="취소 중 오류")
 
+    def quit_now(self) -> None:
+        """세션을 시작하기 전의 종료 요청(⌘Q · 앱 메뉴 · 운영체제 · 첫 실행 고지의 [종료], D-229). 정리 문서 다시 만들기가 진행 중이면
+        생성을 취소하고 그 결과(일회성 프로세스의 종료까지)를 기다린 뒤 끝낸다. 완료 · 실패 화면이면 창을 닫고 바로 끝낸다."""
+        if self._ended:
+            return
+        if self._rebuild_mode:
+            flow = self._end_flow
+            if flow is not None and not self._cleanup_finished:
+                self._wait_cancel_then_quit(flow)
+                return
+            self._close_rebuild_dialog()
+        self.shutdown()
+
+    def _wait_cancel_then_quit(self, flow) -> None:
+        self._quit_after_rebuild = True
+        self._arm_shutdown_deadline()
+        try:
+            flow.cancel()                    # 결과(CANCELLED)가 `_on_done_signal` 에서 종료로 이어진다
+        except Exception:
+            self._close_rebuild_dialog()
+            self.shutdown()
+
     def shutdown(self) -> None:
         if self._ended:
             return
         self._ended = True
+        d, self._end_dialog = self._end_dialog, None
+        if d is not None:
+            d.dismiss()                      # 열린 창이 closeEvent 를 거부하면 app.quit() 이 취소된다(D-229)
         self._cancel_diagrams()
         self._stop_audio()
         self.frame.close()

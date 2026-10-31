@@ -33,5 +33,5 @@
 
 ## Transcript Info
 
-- Transcript file: transcript.txt
+- Session record file: session.jsonl
 - Segments: <N>. The transcript may contain speech recognition errors.

@@ -2,8 +2,8 @@
 
 Qt 를 가져오지 않는다. 화면 쪽(`app/controller.py`)은 이 객체를 만들고 콜백(`on_card` · `on_notice`)만 연결한다.
 
-- `Transcript` · `ContextStore` · `Composer` · `RequestManager` · `ModelSession` 과 세션 폴더의 기록(`SessionLog` · `TranscriptFile`)을 묶는다.
-- 조각이 도착하면 이력(`Transcript`)과 `transcript.txt` · `session.jsonl` 에 덧붙인다.
+- `Transcript` · `ContextStore` · `Composer` · `RequestManager` · `ModelSession` 과 세션 폴더의 기록(`SessionLog`)을 묶는다.
+- 조각이 도착하면 이력(`Transcript`)과 `session.jsonl` 에 덧붙인다(결정 0196: `transcript.txt` · `session.md` 는 만들지 않는다).
 - 카드의 변화를 세션 기록의 `request` · `response` · `delete` 사건으로 옮긴다(본문은 `session.jsonl` 에만 남고 이벤트 로그에는 남지 않는다).
 - 모델 호출은 `submit_*` · `trigger` 를 부를 때만 일어난다(AC-FR7-8). 만드는 것만으로 호출하지 않는다.
 - `RequestManager` 의 콜백 제약(2-4절): `on_card` · `on_notice` 는 잠금 안에서 호출되므로 `RequestManager` 를 다시 호출하지 않는다.
@@ -18,7 +18,7 @@ from typing import Callable, Optional, Sequence
 from . import i18n, languages
 from . import requests as R
 from .context import ContextStore
-from .session import SessionLog, TranscriptFile
+from .session import SessionLog
 from .transcript import Transcript, compress_ids, hms
 from .types import Error, Init, PartialSegment, Segment
 
@@ -47,12 +47,12 @@ class _Meta:
 
 
 class SessionRuntime:
-    def __init__(self, *, folder, log: SessionLog, tfile: TranscriptFile, transcript: Transcript,
+    def __init__(self, *, folder, log: SessionLog, transcript: Transcript,
                  context: ContextStore, composer: R.Composer, model, eventlog=None,
                  on_card: Optional[Callable] = None, on_notice: Optional[Callable] = None,
                  on_error: Optional[Callable] = None, manager_factory: Optional[Callable] = None, **manager_kwargs):
         self.folder = Path(folder)
-        self.log, self.tfile = log, tfile
+        self.log = log
         self.transcript, self.context, self.composer = transcript, context, composer
         self.model = model
         self._eventlog = eventlog
@@ -120,11 +120,6 @@ class SessionRuntime:
             self.log.append("pause", state="끝", ts=ts)
         except Exception:
             pass
-        lang = getattr(self, "stt_language", None)
-        try:
-            self.tfile.append_pause(start, ts, i18n.t_for(languages.normalize_stt(lang), "pause.new27"))
-        except Exception:
-            pass
         return start, ts
 
     def paused_since(self) -> Optional[str]:
@@ -159,14 +154,12 @@ class SessionRuntime:
                 self.model.close()
             finally:
                 self.log.close()
-                self.tfile.close()
 
     # ---- 조각 ----
     def on_segment(self, seg: Segment) -> bool:
-        """STT 에서 도착한 확정 조각. 이력 → `transcript.txt` → `session.jsonl`. 같은 번호는 한 번만 쓴다."""
+        """STT 에서 도착한 확정 조각. 이력 → `session.jsonl`. 같은 번호는 한 번만 쓴다."""
         if not self.transcript.add(seg):
             return False
-        self.tfile.append(seg)
         self.log.append("segment", n=seg.n, start=hms(seg.start_wall), end=hms(seg.end_wall), text=seg.text)
         return True
 
@@ -326,7 +319,6 @@ def build_runtime(*, params: dict, data: dict, devopts, config_dir, save_base, c
                kind=params.get("kind") or "수업", title=params.get("title") or "(이름 없음)",
                number=str(SessionFolder.number(folder)), mode=MODE_BY_SOURCE.get(source, "화상"),
                start=datetime.now().astimezone().strftime("%H:%M:%S"))
-    tfile = TranscriptFile(folder)
     transcript = Transcript()
     composer = R.Composer(transcript, context,
                           request_image_bytes_cap=devopts.get("request_image_bytes_cap") or R.imageinfo.REQUEST_IMAGE_BYTES_CAP)
@@ -342,7 +334,7 @@ def build_runtime(*, params: dict, data: dict, devopts, config_dir, save_base, c
     if devopts.get("final_wait_cap_s"):
         kwargs["final_wait_cap_s"] = float(devopts.get("final_wait_cap_s"))
     kwargs["cut"] = lambda: (holder["rt"].stt_cut or (lambda: None))()
-    rt = SessionRuntime(folder=folder, log=log, tfile=tfile, transcript=transcript, context=context, composer=composer,
+    rt = SessionRuntime(folder=folder, log=log, transcript=transcript, context=context, composer=composer,
                         model=model, eventlog=eventlog, on_card=on_card, on_notice=on_notice, on_error=on_error, **kwargs)
     holder["rt"] = rt
     rt.stt_language = stt_language

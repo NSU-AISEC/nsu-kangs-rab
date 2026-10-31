@@ -241,15 +241,15 @@ STRINGS = {
     # UI-131
     "end.working_title": "정리 문서를 만드는 중입니다",
     # UI-132
-    "end.working_sub": "전사 문서는 이미 저장했습니다.",
+    "end.working_sub": "세션 기록은 이미 저장했습니다.",
     # UI-133
     "end.done_title": "문서를 만들었습니다",
     # UI-134
-    "end.done_sub": "전사 문서와 정리 문서가 저장 위치의 날짜 폴더에 있습니다.",
+    "end.done_sub": "세션 기록과 정리 문서가 저장 위치의 날짜 폴더에 있습니다.",
     # UI-135
     "end.failed_title": "정리 문서를 만들지 못했습니다",
     # UI-136
-    "end.failed_sub": "전사 문서(transcript.txt)는 저장되어 있으며, 나중에 정리 문서를 다시 만들 수 있습니다.",
+    "end.failed_sub": "세션 기록(session.jsonl)은 저장되어 있으며, 나중에 정리 문서를 다시 만들 수 있습니다.",
     # UI-137
     "label.result_done": "완료",
     # UI-138
@@ -835,7 +835,7 @@ STRINGS = {
     # NEW-3
     "newlang.new3": "음성 인식 언어",
     # NEW-4
-    "newlang.new4": "음성 인식 언어는 다음 세션부터 적용하며, 세션 중에는 바꿀 수 없습니다. Claude 의 답변과 정리 문서는 음성 인식 언어로 씁니다. 전사 문서는 인식한 언어 그대로입니다.",
+    "newlang.new4": "음성 인식 언어는 다음 세션부터 적용하며, 세션 중에는 바꿀 수 없습니다. Claude 의 답변과 정리 문서는 음성 인식 언어로 씁니다. 세션 기록의 조각은 인식한 언어 그대로입니다.",
     # NEW-5
     "newlang.new5": "(철회: 결정 0167 7항. 설정에 이 줄을 두지 않는다)",
     # NEW-6
@@ -885,7 +885,6 @@ STRINGS = {
     # NEW-25
     "pause.new25": "일시 정지 {start} ~",
     # NEW-27
-    "pause.new27": "(일시 정지)",
     # NEW-28
     "stopc.new28": "세션을 끝내시겠습니까?",
     # NEW-29

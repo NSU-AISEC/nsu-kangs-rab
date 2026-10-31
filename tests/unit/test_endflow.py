@@ -29,7 +29,6 @@ class Base(unittest.TestCase):
         self.d = Path(self.td.name)
         self.folder = self.d / "2026-10-09"
         self.folder.mkdir()
-        (self.folder / "transcript.txt").write_text("10:00:05 --> 10:00:07\n본문\n", encoding="utf-8")
         evs = [HEADER, {"type": "segment", "n": 1, "start": "10:00:05", "end": "10:00:07", "text": "본문"},
                {"type": "end", "ts": "10:30:00"}]
         (self.folder / "session.jsonl").write_text("\n".join(json.dumps(e, ensure_ascii=False) for e in evs) + "\n",
@@ -90,11 +89,11 @@ class HistoryLessTest(Base):
         self.assertTrue(msgs[1].rstrip().endswith("TEMPLATE-X"))
         self.assertEqual(self.procs.live(), [])         # 프로세스가 남지 않는다
 
-    def test_failure_keeps_transcript_and_rebuild_works(self):  # AC-FR13-8
+    def test_failure_keeps_session_log_and_rebuild_works(self):  # AC-FR13-8
         self.run_flow(self.wrapper(mode="rate_limit"))
         r = self.wait()
         self.assertEqual(r.status, endflow.FAILED)
-        self.assertTrue((self.folder / "transcript.txt").exists())
+        self.assertTrue((self.folder / "session.jsonl").exists())
         self.assertFalse((self.folder / "lecture.md").exists())
         self.done.clear()
         self.cv.clear()

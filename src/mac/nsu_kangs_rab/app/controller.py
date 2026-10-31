@@ -96,7 +96,7 @@ NOTICE_TEXT = {
 def discard_session_folder(folder) -> bool:
     """앱이 막 만든 세션 폴더를 지운다. 앱이 만든 파일만 있을 때만 지우며 그 밖의 파일이 있으면 그대로 둔다."""
     f = Path(folder)
-    own = {"session.jsonl", "session.md", "transcript.txt"}
+    own = {"session.jsonl"}      # 결정 0196: 앱은 이 파일만 만든다(옛 폴더의 session.md · transcript.txt 는 앱이 만든 것으로 보지 않아 지우지 않는다)
     try:
         names = set(os.listdir(f))
         cap = f / "captures"
@@ -2402,7 +2402,7 @@ class AppController(QObject):
         """종료 흐름(FR-13, K-16): 수집을 멈추고 `end` 를 기록한 뒤 정리 문서를 만들고 앱을 끝낸다.
 
         정리 문서는 상주 프로세스에 보내고(이력 경로), 상주 프로세스가 없거나 바쁘면 일회성 프로세스에 보낸다(이력 없는 경로).
-        실패해도 `transcript.txt` 는 남는다. 사용자가 [취소] 하면 문서 없이 끝낸다.
+        실패해도 `session.jsonl` 은 남는다. 사용자가 [취소] 하면 문서 없이 끝낸다.
         """
         if self._ended or self._end_flow is not None:
             return
@@ -2478,14 +2478,23 @@ class AppController(QObject):
         self._stop_audio()
         self._finish_quit()                  # `end` 기록 · 세션 프로세스 종료 · 앱 종료
 
+    def _convert_to_jpeg(self, src: str, dest: str) -> None:
+        """정리 문서의 이미지 링크에 쓰는 JPEG 사본 변환(단계 18). 변환기는 `platform/capture/jpeg.save_jpeg` 이다. 사본은 화소 수를 줄이지 않는다(`limit` 을 크게 준다)."""
+        from ..platform.capture import jpeg
+        jpeg.save_jpeg(src, dest, jpeg.CAPTURE_JPEG_QUALITY, limit=1 << 30)
+
+    def _new_end_flow(self, folder, doc_kind: str) -> EndFlow:
+        """정리 문서를 만드는 모든 경로(세션 종료 · 다시 만들기 · [정리 문서 다시 만들기] 재시도)가 같은 변환을 쓰게 한다(결정 0194)."""
+        return EndFlow(folder=folder, doc_kind=doc_kind, template=endflow.template_for(self.data, doc_kind),
+                       eventlog=self.eventlog, to_jpeg=lambda s, d: self._convert_to_jpeg(s, d))
+
     def _begin_cleanup(self, rt) -> bool:
         """정리 문서를 만들기 시작한다. 만들 것이 없거나 시작하지 못하면 False(바로 끝낸다)."""
         view = endflow.view_of(rt.folder, self.eventlog.emit)
         if view is None or not view.segments:
             return False                    # 전사 조각이 없으면 정리할 것이 없다(임의)
         doc_kind = (view.header.kind if view.header else None) or self._params.get("kind") or "수업"
-        flow = EndFlow(folder=rt.folder, doc_kind=doc_kind, template=endflow.template_for(self.data, doc_kind),
-                       eventlog=self.eventlog)
+        flow = self._new_end_flow(rt.folder, doc_kind)
         self._end_flow = flow
         self._cleanup_finished = False
         self._end_dialog = EndDialog(self.shell)
@@ -2580,8 +2589,7 @@ class AppController(QObject):
         if ctx is None or d is None:
             return
         folder, view, doc_kind = ctx
-        flow = EndFlow(folder=folder, doc_kind=doc_kind, template=endflow.template_for(self.data, doc_kind),
-                       eventlog=self.eventlog)
+        flow = self._new_end_flow(folder, doc_kind)
         self._end_flow = flow
         self._cleanup_finished = False
         self.refresh_status()
@@ -2633,8 +2641,7 @@ class AppController(QObject):
         if view.header is None:                  # 머리가 없으면 종류만 받는다(임의: 종류는 수업을 기본으로 한다)
             view.header = cleanup_doc.Header(kind=kind or "수업", title=title or cleanup_doc.UNNAMED)
         doc_kind = view.header.kind
-        flow = EndFlow(folder=folder, doc_kind=doc_kind, template=endflow.template_for(self.data, doc_kind),
-                       eventlog=self.eventlog)
+        flow = self._new_end_flow(folder, doc_kind)
         self._end_flow = flow
         self._cleanup_finished = False
         self._end_dialog = EndDialog(self.shell)

@@ -727,8 +727,10 @@ class EndAndControlTest(Base):
         self.model.on_event(Result(False, text="x", error_kind="rate_limit"))
         pump()
         self.assertFalse((folder / "lecture.md").exists())
-        self.assertTrue((folder / "transcript.txt").exists())
-        self.assertIn("transcript.txt", self.ctl._end_dialog.message.text())
+        self.assertTrue((folder / "session.jsonl").exists())
+        self.assertFalse((folder / "transcript.txt").exists())      # 결정 0196: 전사 문서를 따로 만들지 않는다
+        self.assertFalse((folder / "session.md").exists())
+        self.assertIn("session.jsonl", self.ctl._end_dialog.message.text())
 
     def test_status_pill_clears_after_cleanup_fails_or_completes_d132(self):  # D-132, FR-11
         def texts():
@@ -763,7 +765,8 @@ class EndAndControlTest(Base):
         pump()
         self.assertTrue(self.ctl._ended)
         self.assertFalse((folder / "lecture.md").exists())
-        self.assertTrue((folder / "transcript.txt").exists())
+        self.assertTrue((folder / "session.jsonl").exists())
+        self.assertFalse((folder / "transcript.txt").exists())
 
     def test_quit_request_on_done_screen_acts_as_close_d184(self):  # 결정 0169 1항: 완료 화면의 종료 요청 = [닫기]
         self._with_segments()
@@ -1919,7 +1922,8 @@ class FrameTest(Base):  # K-14: 캡처 액자 (결정 0010 · 0077), AC-FR12-1 �
         self.ctl.on_command("request.capture")
         self._wait_capture()
         self.assertEqual(len(self.cmds), 1)
-        self.assertEqual(self.cmds[0][:4], ["/usr/sbin/screencapture", "-x", "-R", "303,203,794,444"])      # 테두리 3px 를 뺀 안쪽
+        self.assertEqual(self.cmds[0][:4], ["/usr/sbin/screencapture", "-x", "-t", "png"])
+        self.assertEqual(self.cmds[0][4:6], ["-R", "303,203,794,444"])                                  # 테두리 3px 를 뺀 안쪽. 결정 0194: 임시 PNG 로 받은 뒤 JPEG 으로 다시 부호화한다
         recs = [r for r in self.records() if r.get("type") == "capture"]
         self.assertEqual(len(recs), 1)
         self.assertEqual(recs[0]["source"], "캡처")
@@ -2051,7 +2055,7 @@ class FrameTest(Base):  # K-14: 캡처 액자 (결정 0010 · 0077), AC-FR12-1 �
         self._wait_capture()
         cmds = (Path(str(png) + ".commands.jsonl")).read_text(encoding="utf-8").splitlines()
         self.assertEqual(len(cmds), 1)
-        self.assertEqual(json.loads(cmds[0])[:3], ["/usr/sbin/screencapture", "-x", "-R"])
+        self.assertEqual(json.loads(cmds[0])[:5], ["/usr/sbin/screencapture", "-x", "-t", "png", "-R"])
         self.assertEqual(len([r for r in self.records() if r.get("type") == "capture"]), 1)
 
     def test_capture_while_frame_hidden_uses_same_region(self):  # AC-FR12-11
@@ -2061,7 +2065,7 @@ class FrameTest(Base):  # K-14: 캡처 액자 (결정 0010 · 0077), AC-FR12-1 �
         self.assertFalse(self.ctl.frame.isVisible())
         self.ctl.on_command("request.capture")
         self._wait_capture()
-        self.assertEqual(self.cmds[0][3], "303,203,794,444")
+        self.assertEqual(self.cmds[0][5], "303,203,794,444")
 
     def test_capture_without_permission_posts_error_and_does_not_run(self):  # AC-FR12-7
         self.assertTrue(self.start())

@@ -125,8 +125,7 @@ class SessionTest(T.Base):
         self.assertTrue(v.chip_paused.isHidden())
         line = v.transcript.pause_lines()[0]
         self.assertRegex(line, r"^일시 정지 \d\d:\d\d:\d\d ~ \d\d:\d\d:\d\d \(\d+초\)$")
-        txt = (ctl.runtime.folder / "transcript.txt").read_text(encoding="utf-8")
-        self.assertRegex(txt, r"\d\d:\d\d:\d\d --> \d\d:\d\d:\d\d\n\(일시 정지\)\n")
+        self.assertFalse((ctl.runtime.folder / "transcript.txt").exists())      # 결정 0196: 일시 정지는 session.jsonl 의 pause 줄로만 남는다
         events = [json.loads(x)["type"] for x in Path(ctl.eventlog.path).read_text(encoding="utf-8").splitlines()] \
             if getattr(ctl.eventlog, "path", None) else []
         if events:

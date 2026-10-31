@@ -1,4 +1,4 @@
-"""K-08: 세션 폴더 · session.jsonl / session.md · transcript.txt (AC-FR10-1~5 · 7, AC-FR13-1 · 2 · 4 · 12)."""
+"""K-08: 세션 폴더 · session.jsonl (AC-FR10-1~5 · 7, AC-FR13-4 · 12). 결정 0196: session.md · transcript.txt 는 만들지 않는다."""
 import json
 import os
 import subprocess
@@ -125,7 +125,7 @@ class Log(Base):
         f = self.open()
         self.log.append("header", **HEADER)
         self.log.append("segment", n=1, start="13:15:05", end="13:15:07", text="조각")
-        self.log.append("request", n=1, kind="트리거", input="", scope="1~3")
+        self.log.append("request", n=1, kind="트리거", input="")
         self.log.append("response", n=1, judgment='판단: 질문 | "x?"', text="본문", status="완료")
         self.log.append("capture", n=2, path="captures/c1.png", source="캡처")
         self.log.append("diagram", n=3, path="captures/diagrams/d.svg", result="완료")
@@ -137,8 +137,9 @@ class Log(Base):
         self.assertEqual((rec.end_substituted, rec.end_time, rec.ignored_lines), (False, "13:20:00", 0))
         req = ev[2]
         self.assertEqual(req["ts"], "13:20:00")
-        self.assertNotIn("scope", req)                          # 맥락 범위는 session.md 에만 쓴다
-        self.assertIn("맥락 범위: 1~3", (f / "session.md").read_text(encoding="utf-8"))
+        self.assertNotIn("scope", req)                          # 맥락 범위는 기록하지 않는다(결정 0196 4항)
+        with self.assertRaises(S.SessionRecordError):           # `scope` 는 더 이상 특별한 인자가 아니라 알 수 없는 필드이다
+            self.log.append("request", n=2, kind="트리거", input="", scope="1~3")
 
     def test_response_text_roundtrips_exactly(self):  # AC-FR10-7
         f = self.open()
@@ -150,23 +151,13 @@ class Log(Base):
         self.assertEqual(ev[1]["text"], text)
         self.assertEqual(len(self.lines(f)), 3)
 
-    def test_md_has_header_segment_request_response_capture_delete(self):  # FR-10 session.md
-        f = self.open()
-        self.log.append("header", **HEADER)
-        self.log.append("segment", n=1, start="13:15:05", end="13:15:07", text="첫 조각")
-        self.log.append("request", n=1, kind="자유질의", input="무엇인가?")
-        self.log.append("response", n=1, judgment=None, text="답이다", status="완료")
-        self.log.append("capture", n=2, path="captures/c1.png", source="붙여넣기")
-        self.log.append("delete", n=3, kind="고찰", card_ts="13:21:00", state="진행 중")
-        md = (f / "session.md").read_text(encoding="utf-8")
-        for s in ("2026-10-11", "a.md, b.pdf", "13:15:05 첫 조각", "무엇인가?", "답이다", "captures/c1.png", "삭제된 카드"):
-            self.assertIn(s, md)
-
     def test_files_only_in_session_folder(self):  # AC-FR10-2
         f = self.open()
         self.log.append("header", **HEADER)
-        S.TranscriptFile(f).close()
-        self.assertEqual(sorted(p.name for p in f.iterdir()), ["captures", "session.jsonl", "session.md", "transcript.txt"])
+        self.log.append("segment", n=1, start="13:15:05", end="13:15:07", text="조각")
+        self.log.close()
+        self.assertEqual(sorted(p.name for p in f.iterdir()), ["captures", "session.jsonl"])      # 결정 0196: session.md · transcript.txt 없음
+        self.assertFalse(hasattr(S, "TranscriptFile"))
         self.assertEqual(sorted(p.name for p in self.base.iterdir()), ["2026-10-11"])
 
     def test_forced_kill_keeps_lines(self):  # AC-FR10-1: 프로세스를 SIGKILL 해도 줄이 남는다
@@ -174,10 +165,9 @@ class Log(Base):
         code = ("import sys, os, signal; sys.path.insert(0, %r)\n"
                 "from nsu_kangs_rab.core import session as S\n"
                 "from nsu_kangs_rab.core.types import Segment\n"
-                "L = S.SessionLog(sys.argv[1]); T = S.TranscriptFile(sys.argv[1])\n"
+                "L = S.SessionLog(sys.argv[1])\n"
                 "L.append('header', **%r)\n"
                 "L.append('segment', n=1, start='13:15:05', end='13:15:07', text='남아야 한다')\n"
-                "T.append(Segment(1, '2026-10-11T13:15:05.000+09:00', '2026-10-11T13:15:07.000+09:00', 0., 1., '남아야 한다'))\n"
                 "L.append('request', n=1, kind='자유질의', input='q')\n"
                 "os.kill(os.getpid(), signal.SIGKILL)\n") % (str(ROOT / "src" / "mac"), HEADER)
         r = subprocess.run([sys.executable, "-c", code, str(f)], capture_output=True)
@@ -186,8 +176,7 @@ class Log(Base):
         self.assertEqual([e["type"] for e in ev], ["header", "segment", "request"])
         self.assertTrue(rec.end_substituted)
         self.assertEqual(rec.end_time, "13:15:07")
-        self.assertIn("남아야 한다", (f / "transcript.txt").read_text(encoding="utf-8"))
-        self.assertIn("남아야 한다", (f / "session.md").read_text(encoding="utf-8"))
+        self.assertIn("남아야 한다", (f / "session.jsonl").read_text(encoding="utf-8"))
 
     def test_concurrent_appends_keep_whole_lines(self):
         f = self.open()
@@ -230,44 +219,18 @@ class Read(Base):
         self.assertEqual(([e["type"] for e in ev], rec.ignored_lines, rec.end_time), (["end"], 3, "14:00:00"))
 
 
-class Transcript(Base):
-    def test_format_and_no_speaker(self):  # AC-FR13-1
-        f = self.folder()
-        t = S.TranscriptFile(f)
-        self.addCleanup(t.close)
-        t.append(seg(1, "13:15:05", "13:15:07", "안녕하세요"))
-        t.append(seg(2, "13:15:08", "13:15:12", "둘째\n\n줄바꿈 있음"))
-        data = (f / "transcript.txt").read_text(encoding="utf-8")
-        self.assertEqual(data, "13:15:05 --> 13:15:07\n안녕하세요\n\n13:15:08 --> 13:15:12\n둘째 줄바꿈 있음\n\n")
-
-    def test_append_is_immediate_and_survives_without_close(self):  # AC-FR13-2
-        f = self.folder()
-        t = S.TranscriptFile(f)
-        t.append(seg(1, "13:15:05", "13:15:07"))
-        self.assertIn("13:15:05 --> 13:15:07", (f / "transcript.txt").read_text(encoding="utf-8"))   # 닫기 전에 이미 읽힌다
-        t.close()
-
-    def test_duplicate_segment_written_once(self):
-        f = self.folder()
-        t = S.TranscriptFile(f)
-        self.assertTrue(t.append(seg(1, "13:15:05", "13:15:07")))
-        self.assertFalse(t.append(seg(1, "13:15:05", "13:15:07")))
-        t.close()
-        self.assertEqual((f / "transcript.txt").read_text(encoding="utf-8").count("-->"), 1)
-
+class Midnight(Base):
     def test_midnight_keeps_start_date_folder_and_wall_times(self):  # AC-FR13-12
         f = S.SessionFolder.create(self.base, "2026-10-11")
-        t = S.TranscriptFile(f)
-
-        def w(d, hms_):
-            return "2026-10-%02dT%s.000+09:00" % (d, hms_)
-        t.append(Segment(1, w(11, "23:59:58"), w(11, "23:59:59"), 1., 2., "자정 전"))
-        t.append(Segment(2, w(12, "00:00:05"), w(12, "00:00:07"), 3., 4., "자정 뒤"))
-        t.close()
+        log = S.SessionLog(f)
+        self.addCleanup(log.close)
+        log.append("header", **HEADER)
+        log.append("segment", n=1, start="23:59:58", end="23:59:59", text="자정 전")
+        log.append("segment", n=2, start="00:00:05", end="00:00:07", text="자정 뒤")
         self.assertEqual(f.name, "2026-10-11")
-        data = (f / "transcript.txt").read_text(encoding="utf-8")
-        self.assertIn("23:59:58 --> 23:59:59\n자정 전", data)
-        self.assertIn("00:00:05 --> 00:00:07\n자정 뒤", data)
+        data = (f / "session.jsonl").read_text(encoding="utf-8")
+        self.assertIn('"start":"23:59:58","end":"23:59:59","text":"자정 전"', data)
+        self.assertIn('"start":"00:00:05","end":"00:00:07","text":"자정 뒤"', data)
 
 
 if __name__ == "__main__":

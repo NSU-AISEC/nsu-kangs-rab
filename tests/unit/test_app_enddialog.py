@@ -62,7 +62,7 @@ class EndDialogTest(unittest.TestCase):
         self.assertEqual(d.retry_button.objectName(), "primary")
         self.assertEqual(d.row_doc.pill.text(), "실패")
         self.assertIn("한도 초과", d.message.text())
-        self.assertIn("transcript.txt", d.message.text())
+        self.assertIn("session.jsonl", d.message.text())
 
     def test_unknown_failure_kind_has_no_english_code(self):  # D-102
         self.d.show_failed("unknown")

@@ -1446,7 +1446,7 @@ class SessionView(QWidget):
         clock_w = max(self.clock.sizeHint().width(), 64) if hasattr(self, "clock") else 64
         title_w = QFontMetrics(self.ai_title.font()).horizontalAdvance(self.ai_title.text()) + 8 if hasattr(self, "ai_title") else 60
         base = 28 + title_w + 8 + 14 + clock_w + 12 * 2 + 12 + 8                # 여백 · 제목 · 간격 · 시계 · 두 단추 사이
-        rk, ck = self._trigger_key or "", self._global_capture or ""
+        rk, ck = self._global_trigger or self._trigger_key or "", self._global_capture or ""
         if avail < base + width(rk) + width(ck):
             ck = ""
         if avail < base + width(rk) + width(ck):

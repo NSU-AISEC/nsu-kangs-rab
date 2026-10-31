@@ -1,6 +1,6 @@
 """정리 문서를 만드는 동안 표시하는 창 (K-16; FR-13 "종료 흐름", AC-FR13-5; 시안 `EndDialog`, 결정 0068).
 
-폭 640 의 앱 모달 창이다. 제목 · 부제 · 파일 세 줄(transcript.txt · 정리 문서 · captures/)의 상태 알약 · 진행 막대 · 저장 위치,
+폭 640 의 앱 모달 창이다. 제목 · 부제 · 파일 세 줄(session.jsonl · 정리 문서 · captures/)의 상태 알약 · 진행 막대 · 저장 위치,
 아래 줄에 버튼 둘. 상태마다 버튼이 다르다: 진행 중 [취소] + 꺼진 [폴더 열기], 완료 [닫기] + 기본 [폴더 열기],
 실패 [폴더 열기] + 기본 [정리 문서 다시 만들기]. 막는 대화 상자가 아니라 `open()` 으로 연다.
 실패 상태에는 [닫기] 가 없으므로 창 닫기(Esc · 닫기 단추)가 `close_requested` 이다. 진행 중에는 창을 닫지 못한다.
@@ -116,7 +116,7 @@ class EndDialog(QDialog):
         rl = QVBoxLayout(self.rows_frame)
         rl.setContentsMargins(0, 0, 0, 0)
         rl.setSpacing(0)
-        self.row_transcript = _Row("transcript.txt")
+        self.row_transcript = _Row("session.jsonl")
         self.row_doc = _Row(self._doc_name)
         self.row_captures = _Row("captures/")
         for r in (self.row_transcript, self.row_doc, self.row_captures):

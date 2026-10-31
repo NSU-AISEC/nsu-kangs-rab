@@ -5,7 +5,7 @@
   요청이 진행 중이거나 대기 중이면 이력 없는 경로로 만든다(임의). 사건은 `SessionRuntime.set_listener` 로 직접 받는다.
 - 이력이 없는 경로(`run_history_less`): `session.jsonl` 로 요청을 만들어 일회성 프로세스에 보낸다(세션 메뉴의 다시 만들기, 8-3-1절).
 
-어느 경로든 끝나면 `on_done(EndResult)` 를 한 번만 호출한다. 실패해도 `transcript.txt` 는 그대로이다.
+어느 경로든 끝나면 `on_done(EndResult)` 를 한 번만 호출한다. 실패해도 `session.jsonl` 은 그대로이다.
 """
 from __future__ import annotations
 from .i18n import t as _t
@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Mapping, Optional
 
-from . import cleanup_doc, resources
+from . import cleanup_doc, doc_images, resources
 from .oneshot import OneShot, Outcome
 from .session import read_jsonl
 from .types import OutgoingMessage, ProcessExited, Result, TextDelta, Error
@@ -100,8 +100,10 @@ class SectionProgress:
 
 
 class EndFlow:
-    def __init__(self, *, folder, doc_kind: str, template: str, eventlog=None):
+    def __init__(self, *, folder, doc_kind: str, template: str, eventlog=None, to_jpeg=None):
         self.folder = Path(folder)
+        self._to_jpeg = to_jpeg              # 단계 18: 문서의 이미지 링크를 JPEG 사본으로 바꾼다(None 이면 바꾸지 않는다)
+        self._skip: set = set()
         self.doc_kind = doc_kind
         self.template = template
         self._log = eventlog
@@ -123,6 +125,7 @@ class EndFlow:
     def run_resident(self, runtime, view: cleanup_doc.View, session_effort: Optional[str],
                      on_done: Callable[[EndResult], None]) -> bool:
         self._on_done, self._runtime, self._route = on_done, runtime, "resident"
+        self._skip = doc_images.deleted_paths(view)
         self.progress.restart()
         text = cleanup_doc.build_request(view, self.doc_kind, self.template, history=True)
         runtime.set_listener(self._on_event)
@@ -160,6 +163,7 @@ class EndFlow:
     # ---- 이력이 없는 경로 ----
     def run_history_less(self, view: cleanup_doc.View, oneshot: OneShot, on_done: Callable[[EndResult], None]) -> bool:
         self._on_done, self._oneshot, self._route = on_done, oneshot, "history_less"
+        self._skip = doc_images.deleted_paths(view)
         self.progress.restart()
         oneshot.on_text = self.progress.feed
         text = cleanup_doc.build_request(view, self.doc_kind, self.template, history=False)
@@ -191,6 +195,11 @@ class EndFlow:
         if not (text or "").strip():
             self._fail("no_text", _t("endflow.finish_text_292"))
             return
+        if self._to_jpeg is not None:
+            try:
+                text = doc_images.convert_links(text, self.folder, self._to_jpeg, self._emit, skip=self._skip)
+            except Exception:  # noqa: BLE001 — 변환 오류가 문서 저장을 막지 않는다
+                self._emit("doc_image", kind="convert_failed", path="", detail="unexpected")
         try:
             path = cleanup_doc.save_document(self.folder, self.doc_kind, text)
         except OSError as e:

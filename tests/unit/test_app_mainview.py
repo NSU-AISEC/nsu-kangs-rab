@@ -430,6 +430,25 @@ class ReflectHeaderTest(unittest.TestCase):
         self.assertGreater(v.btn_capture.width(), 28)
         self.assertEqual(v.btn_capture.toolTip(), "액자 캡처")       # 키는 도움말에 더하지 않는다
 
+    def test_reflect_key_prefers_global_trigger(self):          # 결정 0195 2항: 전역 키가 있으면 그 키, 없으면 앱 창 안 키
+        v = self.v
+        orig = v.ai_head.width
+        try:
+            v.ai_head.width = lambda: 100000
+            v.set_request_keys("", "PgUp", "")                       # 앱 창 안 비움 · 전역 PgUp
+            self.assertEqual(v.btn_reflect.text(), "PgUp")
+            v.set_request_keys("F2", "", "")                         # 기본 F2 · 전역 비움
+            self.assertEqual(v.btn_reflect.text(), "F2")
+            v.set_request_keys("", "", "")                           # 둘 다 비움
+            self.assertEqual(v.btn_reflect.text(), "")
+            self.assertEqual(v.btn_reflect.width(), 28)
+            v.set_request_keys("F2", "PgUp", "")                     # 둘 다 지정
+            self.assertEqual(v.btn_reflect.text(), "PgUp")
+            v.set_request_keys("F2", "", "")                         # 설정에서 전역 키를 비우면 앱 창 안 키로 바뀐다
+            self.assertEqual(v.btn_reflect.text(), "F2")
+        finally:
+            v.ai_head.width = orig
+
     def test_tooltips_are_names_only(self):
         v = self.v
         v.set_request_keys("F2", "Page Up", "Page Down")

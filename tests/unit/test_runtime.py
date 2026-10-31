@@ -147,12 +147,12 @@ class RuntimeTest(unittest.TestCase):
         self.assertIn("[사용자 문구]", self.model.kw["prompt_text"])
         self.assertTrue(self.model.kw["prompt_text"].startswith(resources.app_rules("ko")))
 
-    def test_segment_goes_to_transcript_and_files_once(self):
+    def test_segment_goes_to_transcript_and_session_log_once(self):
         self.assertTrue(self.rt.on_segment(seg(1, 5, 9, "첫 조각")))
         self.assertFalse(self.rt.on_segment(seg(1, 5, 9, "첫 조각")))
         self.assertEqual(self.rt.transcript.count(), 1)
-        txt = (self.rt.folder / "transcript.txt").read_text(encoding="utf-8")
-        self.assertIn("첫 조각", txt)
+        self.assertFalse((self.rt.folder / "transcript.txt").exists())      # 결정 0196
+        self.assertFalse((self.rt.folder / "session.md").exists())
         segs = [r for r in read_jsonl(self.rt.folder) if r["type"] == "segment"]
         self.assertEqual([(r["n"], r["text"]) for r in segs], [(1, "첫 조각")])
 

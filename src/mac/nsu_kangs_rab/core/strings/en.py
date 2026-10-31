@@ -241,15 +241,15 @@ STRINGS = {
     # UI-131
     "end.working_title": "Creating the summary document",
     # UI-132
-    "end.working_sub": "The transcript document is already saved.",
+    "end.working_sub": "The session record is already saved.",
     # UI-133
     "end.done_title": "Document created",
     # UI-134
-    "end.done_sub": "The transcript document and summary document are in the date folder under the save location.",
+    "end.done_sub": "The session record and summary document are in the date folder under the save location.",
     # UI-135
     "end.failed_title": "Could not create the summary document",
     # UI-136
-    "end.failed_sub": "The transcript document (transcript.txt) is saved. You can recreate the summary document later.",
+    "end.failed_sub": "The session record (session.jsonl) is saved. You can recreate the summary document later.",
     # UI-137
     "label.result_done": "Done",
     # UI-138
@@ -835,7 +835,7 @@ STRINGS = {
     # NEW-3
     "newlang.new3": "Speech recognition language",
     # NEW-4
-    "newlang.new4": "The speech recognition language applies from the next session and cannot be changed during a session. Claude's answers and summary documents are written in the speech recognition language. The transcript document keeps the recognized language as it is.",
+    "newlang.new4": "The speech recognition language applies from the next session and cannot be changed during a session. Claude's answers and summary documents are written in the speech recognition language. The segments in the session record keep the recognized language as it is.",
     # NEW-5
     "newlang.new5": "(Retired: decision 0167, item 7. Settings no longer shows this line.)",
     # NEW-6
@@ -885,7 +885,6 @@ STRINGS = {
     # NEW-25
     "pause.new25": "Paused {start} ~",
     # NEW-27
-    "pause.new27": "(Paused)",
     # NEW-28
     "stopc.new28": "End the session?",
     # NEW-29
